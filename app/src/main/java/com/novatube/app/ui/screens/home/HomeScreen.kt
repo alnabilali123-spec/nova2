@@ -345,12 +345,6 @@ private fun PlatformsGrid(onClick: (String) -> Unit) {
     }
 }
 
-@Composable
-private fun EmptyState(text: String) {
-    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
 
 @Composable
 private fun EmptyState(text: String) {
