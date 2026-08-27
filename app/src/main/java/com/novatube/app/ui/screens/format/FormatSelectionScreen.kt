@@ -27,7 +27,6 @@ import com.novatube.app.data.prefs.AudioFormat
 import com.novatube.app.viewmodel.DownloadsViewModel
 import com.novatube.app.viewmodel.FormatSelectionViewModel
 
-@file:OptIn(ExperimentalMaterial3Api::class)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
