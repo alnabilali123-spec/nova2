@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
@@ -12,7 +11,6 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.novatube.app.data.prefs.PreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,10 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-/**
- * Lightweight wrapper around ExoPlayer with state flows for the UI layer.
- * One instance per player screen.
- */
 class VideoPlayerHolder(
     private val context: Context,
     private val okHttpClient: OkHttpClient,
@@ -35,19 +29,23 @@ class VideoPlayerHolder(
         parameters = buildUponParameters().setForceLowestBitrate(false).build()
     }
 
+    // تصحيح: استخدام DefaultHttpDataSource.Factory بشكل صحيح
     private val dataSourceFactory = DefaultDataSource.Factory(
         context,
-        DefaultHttpDataSource.Factory(okHttpClient)
+        DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (Linux; Android 14) NovaTube/1.0")
-            .setConnectTimeout(30, TimeUnit.SECONDS)
-            .setReadTimeout(60, TimeUnit.SECONDS)
+            .setConnectTimeoutMs(30_000)
+            .setReadTimeoutMs(60_000)
             .setAllowCrossProtocolRedirects(true)
     )
 
     private val mediaSourceFactory = DefaultMediaSourceFactory(context)
         .setDataSourceFactory(dataSourceFactory)
 
-    val player: ExoPlayer = ExoPlayer.Builder(context, renderersFactory, mediaSourceFactory, trackSelector)
+    // تصحيح: إزالة الوسيطات الزائدة من ExoPlayer.Builder
+    val player: ExoPlayer = ExoPlayer.Builder(context, renderersFactory)
+        .setMediaSourceFactory(mediaSourceFactory)
+        .setTrackSelector(trackSelector)
         .setHandleAudioBecomingNoisy(true)
         .setSeekBackIncrementMs(10_000)
         .setSeekForwardIncrementMs(10_000)
@@ -82,7 +80,6 @@ class VideoPlayerHolder(
     fun setSource(uri: String, title: String? = null, headers: Map<String, String> = emptyMap()) {
         val item = MediaItem.Builder()
             .setUri(uri)
-            .setMimeType(if (uri.endsWith(".mp3") || uri.endsWith(".m4a")) MimeTypes.AUDIO_MPEG else MimeTypes.VIDEO_UNKNOWN)
             .setMediaId(uri)
             .build()
         player.setMediaItem(item)
