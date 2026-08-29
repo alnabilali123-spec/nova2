@@ -3,10 +3,10 @@ package com.novatube.app.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -193,7 +193,7 @@ fun ResultListItem(
             )
         }
         FilledTonalIconButton(onClick = onDownload) {
-            Icon(Icons.Outlined.Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
+            Icon(Download, contentDescription = "Download", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
