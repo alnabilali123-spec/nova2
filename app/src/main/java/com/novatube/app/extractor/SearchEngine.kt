@@ -10,18 +10,12 @@ import com.yausername.youtubedl.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Search backend. Tries platform-specific yt-dlp extractors first (ytsearch:, scsearch:, etc.),
- * falls back to a generic HTTP search engine when nothing matches.
- */
 class SearchEngine(private val gson: Gson = Gson()) {
 
     suspend fun search(query: String, max: Int = 25): List<SearchResult> = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext emptyList()
         val results = mutableListOf<SearchResult>()
-        // YouTube video search via yt-dlp
         results += runYtSearch("ytsearch$max:$query", SearchKind.VIDEO, "YouTube")
-        // SoundCloud
         results += runYtSearch("scsearch$max:$query", SearchKind.AUDIO, "SoundCloud")
         return@withContext results.distinctBy { it.url }
     }
