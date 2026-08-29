@@ -16,7 +16,6 @@ import com.novatube.app.data.prefs.PreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 class VideoPlayerHolder(
     private val context: Context,
@@ -29,7 +28,6 @@ class VideoPlayerHolder(
         parameters = buildUponParameters().setForceLowestBitrate(false).build()
     }
 
-    // تصحيح: استخدام DefaultHttpDataSource.Factory بشكل صحيح
     private val dataSourceFactory = DefaultDataSource.Factory(
         context,
         DefaultHttpDataSource.Factory()
@@ -42,7 +40,6 @@ class VideoPlayerHolder(
     private val mediaSourceFactory = DefaultMediaSourceFactory(context)
         .setDataSourceFactory(dataSourceFactory)
 
-    // تصحيح: إزالة الوسيطات الزائدة من ExoPlayer.Builder
     val player: ExoPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setMediaSourceFactory(mediaSourceFactory)
         .setTrackSelector(trackSelector)
@@ -55,7 +52,7 @@ class VideoPlayerHolder(
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                     .build(),
-                /* handleAudioFocus = */ true
+                true
             )
             playWhenReady = true
         }
