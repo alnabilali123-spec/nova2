@@ -16,16 +16,10 @@ import com.novatube.app.data.entity.DownloadStatus
 import com.novatube.app.data.model.RequestedDownload
 import com.novatube.app.service.DownloadService
 import com.novatube.app.util.NotificationHelper
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 
-/**
- * Owns a single download run. Receives a [DownloadEntity] id via input data, loads it from Room,
- * delegates to [DownloadManager] for the actual yt-dlp call, and keeps Room + notification
- * state in sync. The user-visible foreground notification is provided by [DownloadService];
- * here we publish progress Data so anyone observing the work gets live updates.
- */
 class DownloadWorker(
     appContext: Context,
     params: WorkerParameters
@@ -53,20 +47,18 @@ class DownloadWorker(
         setForeground(createForegroundInfo(entity.title, 0))
         app.downloadRepository.markRunning(id)
 
-        val completedSignal = CompletableDeferred<File?>()
         val manager = DownloadManager(applicationContext)
+        return try {
+            var resultFile: File? = null
+            var errorMsg: String? = null
 
-        val result = withTimeoutOrNull(6 * 60 * 60 * 1000L) {
             manager.run(
                 request = request,
                 listener = object : DownloadManager.ProgressListener {
                     override fun onProgress(line: DownloadManager.ProgressEvent) {
                         val percent = line.percent.toInt().coerceIn(0, 100)
-                        // Persist progress every ~1% to avoid hammering the DB.
-                        if (percent % 1 == 0) {
-                            kotlinx.coroutines.runBlocking {
-                                app.downloadRepository.updateProgress(id, percent, line.downloadedBytes)
-                            }
+                        GlobalScope.launch {
+                            app.downloadRepository.updateProgress(id, percent, line.downloadedBytes)
                         }
                         setProgress(
                             workDataOf(
@@ -80,29 +72,39 @@ class DownloadWorker(
                         DownloadService.broadcastProgress(applicationContext, id, percent, entity.title)
                     }
                     override fun onCompleted(file: File) {
-                        completedSignal.complete(file)
+                        resultFile = file
                     }
                     override fun onError(message: String, cause: Throwable?) {
-                        completedSignal.completeExceptionally(RuntimeException(message, cause))
+                        errorMsg = message
                     }
                 },
                 shouldCancel = { isStopped }
             )
-            try { completedSignal.await() } catch (e: Exception) { null }
-        }
 
-        return if (result != null) {
-            val file = result
-            val size = file.length()
-            app.downloadRepository.markCompleted(id, file.absolutePath, size)
-            DownloadService.broadcastComplete(applicationContext, id, entity.title, file.absolutePath)
-            setProgress(workDataOf(KEY_PROGRESS to 100, KEY_TOTAL to size, KEY_BYTES to size))
-            Result.success(workDataOf("path" to file.absolutePath, "size" to size))
-        } else {
-            val msg = if (isStopped) "Cancelled" else "Timed out"
-            app.downloadRepository.markFailed(id, msg)
-            DownloadService.broadcastFailed(applicationContext, id, entity.title, msg)
-            Result.failure(workDataOf("error" to msg))
+            if (isStopped) {
+                app.downloadRepository.markCancelled(id)
+                DownloadService.broadcastFailed(applicationContext, id, entity.title, "Cancelled")
+                Result.failure(workDataOf("error" to "Cancelled"))
+            } else if (errorMsg != null) {
+                app.downloadRepository.markFailed(id, errorMsg)
+                DownloadService.broadcastFailed(applicationContext, id, entity.title, errorMsg)
+                Result.failure(workDataOf("error" to errorMsg))
+            } else if (resultFile != null) {
+                val file = resultFile!!
+                val size = file.length()
+                app.downloadRepository.markCompleted(id, file.absolutePath, size)
+                DownloadService.broadcastComplete(applicationContext, id, entity.title, file.absolutePath)
+                setProgress(workDataOf(KEY_PROGRESS to 100, KEY_TOTAL to size, KEY_BYTES to size))
+                Result.success(workDataOf("path" to file.absolutePath, "size" to size))
+            } else {
+                app.downloadRepository.markFailed(id, "Unknown error")
+                DownloadService.broadcastFailed(applicationContext, id, entity.title, "Unknown error")
+                Result.failure(workDataOf("error" to "Unknown error"))
+            }
+        } catch (e: Exception) {
+            app.downloadRepository.markFailed(id, e.message)
+            DownloadService.broadcastFailed(applicationContext, id, entity.title, e.message)
+            Result.failure(workDataOf("error" to e.message))
         }
     }
 
