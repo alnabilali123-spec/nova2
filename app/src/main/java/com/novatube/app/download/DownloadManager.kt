@@ -16,10 +16,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.regex.Pattern
 
-/**
- * Owns a single yt-dlp download at a time. The worker thread of [com.novatube.app.download.DownloadWorker]
- * delegates here for the actual blocking I/O, then we stream progress events to the supplied [ProgressListener].
- */
 class DownloadManager(private val context: Context) {
 
     interface ProgressListener {
@@ -98,13 +94,11 @@ class DownloadManager(private val context: Context) {
             name.equals(sanitized, ignoreCase = true)
         } ?: emptyArray()
         if (candidates.isNotEmpty()) return candidates.maxByOrNull { it.lastModified() }
-        // Fallback: most recent file in directory
         return dir.listFiles()
             ?.filter { it.isFile && it.length() > 0 }
             ?.maxByOrNull { it.lastModified() }
     }
 
-    /** Parse a single progress line emitted by yt-dlp's --newline mode. */
     private fun parseProgress(line: String): ProgressEvent? {
         if (line.isBlank()) return null
         val matcher = PROGRESS_PATTERN.matcher(line)
@@ -126,8 +120,6 @@ class DownloadManager(private val context: Context) {
     companion object {
         private const val TAG = "DownloadManager"
 
-        // Matches lines like:
-        //   [download]  45.2% of  120.50MiB at    2.50MiB/s ETA 00:30
         private val PROGRESS_PATTERN: Pattern =
             Pattern.compile("\\[download\\]\\s+([0-9.]+)%\\s+of\\s+([0-9.]+\\s*\\S+)(?:\\s+at\\s+([0-9.]+\\s*\\S+))?(?:\\s+ETA\\s+([0-9:]+))?")
 
@@ -148,7 +140,6 @@ class DownloadManager(private val context: Context) {
     }
 }
 
-/** Convenience for the worker to surface status to the database. */
 suspend fun persistStatus(
     app: NovaTubeApp,
     entity: DownloadEntity,
@@ -160,9 +151,7 @@ suspend fun persistStatus(
         DownloadStatus.QUEUED -> app.downloadRepository.markQueued(entity.id)
         DownloadStatus.PAUSED -> app.downloadRepository.markPaused(entity.id)
         DownloadStatus.CANCELLED -> app.downloadRepository.markCancelled(entity.id)
-        DownloadStatus.COMPLETED -> {
-            // completed is set with file info in the worker; no-op here
-        }
+        DownloadStatus.COMPLETED -> {}
         DownloadStatus.FAILED -> app.downloadRepository.markFailed(entity.id, errorMessage)
     }
 }
