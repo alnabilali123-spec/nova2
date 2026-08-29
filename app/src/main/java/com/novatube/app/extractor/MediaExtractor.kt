@@ -11,10 +11,6 @@ import kotlinx.coroutines.withContext
 
 class MediaExtractor(private val gson: Gson = Gson()) {
 
-    /**
-     * Runs `yt-dlp -J --no-warnings --no-playlist <url>` and parses the resulting JSON
-     * metadata blob. Throws on failure.
-     */
     suspend fun extract(url: String): MediaInfo = withContext(Dispatchers.IO) {
         Log.i(TAG, "extract() $url")
         val request = YoutubeDLRequest(url).apply {
@@ -23,7 +19,6 @@ class MediaExtractor(private val gson: Gson = Gson()) {
             addOption("--no-playlist")
             addOption("--no-color")
             addOption("--no-progress")
-            // Don't actually download anything.
         }
         val response = try {
             YoutubeDL.getInstance().execute(request)
