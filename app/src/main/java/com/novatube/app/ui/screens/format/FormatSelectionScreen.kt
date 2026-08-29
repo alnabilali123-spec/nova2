@@ -18,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.novatube.app.R
@@ -26,7 +27,6 @@ import com.novatube.app.data.model.RequestedDownload
 import com.novatube.app.data.prefs.AudioFormat
 import com.novatube.app.viewmodel.DownloadsViewModel
 import com.novatube.app.viewmodel.FormatSelectionViewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
