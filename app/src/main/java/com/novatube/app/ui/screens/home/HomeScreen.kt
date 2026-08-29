@@ -22,15 +22,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.novatube.app.R
 import com.novatube.app.ui.components.MediaCard
 import com.novatube.app.ui.components.PlatformBadge
 import com.novatube.app.util.UrlUtils
 import com.novatube.app.viewmodel.DownloadsViewModel
-import kotlinx.coroutines.flow.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -344,7 +342,6 @@ private fun PlatformsGrid(onClick: (String) -> Unit) {
         }
     }
 }
-
 
 @Composable
 private fun EmptyState(text: String) {
